@@ -31,11 +31,11 @@ See [https://nimiq.github.io/qr-scanner/demo/](https://nimiq.github.io/qr-scanne
 
 To install via npm:
 ```bash
-npm install --save @andreassaltsberg/qr-scanner-byte-mode
+npm install --save @asaltsberg/qr-scanner-byte-mode
 ```
 To install via yarn:
 ```bash
-yarn add @andreassaltsberg/qr-scanner-byte-mode
+yarn add @asaltsberg/qr-scanner-byte-mode
 ```
 Or simply copy `qr-scanner.min.js` and `qr-scanner-worker.min.js` to your project.
 
