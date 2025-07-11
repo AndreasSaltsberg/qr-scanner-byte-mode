@@ -1,3 +1,7 @@
+## Important
+
+This is a fork of [Nimiq's QR scanner](https://github.com/nimiq/qr-scanner) that adds byte mode support. All credits to the original author.
+
 # QR Scanner
 
 Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://github.com/cozmo/jsqr) of [Google's ZXing library](https://github.com/zxing/zxing).
@@ -96,16 +100,6 @@ const qrScanner = new QrScanner(
     { /* your options */ },
 );
 
-// For backwards compatibility, omitting the options object will currently use the old api, returning scan results as
-// simple strings. This old api will be removed in the next major release, by which point the options object is then
-// also not required anymore to enable the new api.
-const qrScanner = new QrScanner(
-    videoElem,
-    result => console.log('decoded qr code:', result),
-    // No options provided. This will use the old api and is deprecated in the current version until next major version.
-);
-```
-
 As an optional third parameter an options object can be provided.
 Supported options are:
 
@@ -118,6 +112,7 @@ Supported options are:
 | `highlightScanRegion` | Set this option to `true` for rendering an outline around the scan region on the video stream. This uses an absolutely positioned `div` that covers the scan region. This `div` can either be supplied as option `overlay`, see below, or automatically created and then accessed via `qrScanner.$overlay`. It can be freely styled via CSS, e.g. by setting an outline, border, background color, etc. See the [demo](https://nimiq.github.io/qr-scanner/demo/) for examples. |
 | `highlightCodeOutline` | Set this option to `true` for rendering an outline around detected QR codes. This uses an absolutely positioned `div` on which an SVG for rendering the outline will be placed. This `div` can either be supplied as option `overlay`, see below, or be accessed via `qrScanner.$overlay`. The SVG can be freely styled via CSS, e.g. by setting the fill color, stroke color, stroke width, etc. See the [demo](https://nimiq.github.io/qr-scanner/demo/) for examples. For more special needs, you can also use the `cornerPoints` directly, see below, for rendering an outline or the points yourself. |
 | `overlay` | A custom `div` that can be supplied for use for `highlightScanRegion` and `highlightCodeOutline`. The `div` should be a sibling of `videoElem` in the DOM. If this option is supplied, the default styles for `highlightCodeOutline` are not applied as the expectation is that the element already has some custom style applied to it. |
+| `byteMode` | Returns result in binary. Also useful when data is not encoded in UTF-8. |
 
 To use the default value for an option, omit it or supply `undefined`.
 
@@ -169,6 +164,7 @@ Supported options are:
 | `canvas` | A manually created canvas to be reused. This improves performance if you're scanning a lot of images. A canvas can be manually created via a `<canvas>` tag in your markup or `document.createElement('canvas')`. By default, no canvas is reused for single image scanning. |
 | `disallowCanvasResizing` | Request a provided canvas for reuse to not be resized, irrespective of the source image or source region dimensions. Note that the canvas and source region should have the same aspect ratio to avoid that the image to scan gets distorted which could make detecting QR codes impossible. By default, the canvas size is adapted to the scan region dimensions or down scaled scan region for single image scanning. |
 | `alsoTryWithoutScanRegion` | Request a second scan on the entire image if a `scanRegion` was provided and no QR code was found within that region. By default, no second scan is attempted. |
+| `byteMode` | Returns result in binary. Also useful when data is not encoded in UTF-8. |
 
 To use the default value for an option, omit it or supply `undefined`.
 
