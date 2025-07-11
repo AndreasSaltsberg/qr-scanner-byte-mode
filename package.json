@@ -1,7 +1,7 @@
 {
-  "name": "qr-scanner",
-  "version": "1.4.2",
-  "description": "A javascript QR scanner library",
+  "name": "qr-scanner-byte-mode",
+  "version": "1.0.0",
+  "description": "A fork of javascript QR scanner library, enhanced with byte mode support",
   "main": "qr-scanner.umd.min.js",
   "module": "qr-scanner.min.js",
   "types": "types/qr-scanner.d.ts",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nimiq/qr-scanner.git"
+    "url": "git+https://github.com/AndreasSaltsberg/qr-scanner-byte-mode.git"
   },
   "keywords": [
     "qr",
@@ -38,9 +38,9 @@
   "author": "Nimiq (https://nimiq.com)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nimiq/qr-scanner/issues"
+    "url": "https://github.com/AndreasSaltsberg/qr-scanner-byte-mode/issues"
   },
-  "homepage": "https://github.com/nimiq/qr-scanner#readme",
+  "homepage": "https://github.com/AndreasSaltsberg/qr-scanner-byte-mode#readme",
   "dependencies": {
     "@types/offscreencanvas": "^2019.6.4"
   },
