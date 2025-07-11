@@ -1,5 +1,5 @@
 {
-  "name": "qr-scanner-byte-mode",
+  "name": "@andreassaltsberg/qr-scanner-byte-mode",
   "version": "1.0.0",
   "description": "A fork of javascript QR scanner library, enhanced with byte mode support",
   "main": "qr-scanner.umd.min.js",
@@ -55,5 +55,8 @@
     "rollup-plugin-sourcemaps": "^0.6.2",
     "tslib": "^2.3.1",
     "typescript": "^4.5.5"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
