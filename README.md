@@ -99,6 +99,7 @@ const qrScanner = new QrScanner(
     result => console.log('decoded qr code:', result),
     { /* your options */ },
 );
+```
 
 As an optional third parameter an options object can be provided.
 Supported options are:
