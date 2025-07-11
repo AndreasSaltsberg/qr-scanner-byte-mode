@@ -58,7 +58,7 @@ class QrScanner {
     readonly $overlay?: HTMLDivElement;
     private readonly $codeOutlineHighlight?: SVGSVGElement;
     private readonly _onDecode?: (result: QrScanner.ScanResult) => void;
-    private readonly _legacyOnDecode?: (result: string) => void;
+    private readonly _legacyOnDecode?: (result: string | Uint8Array) => void;
     private readonly _legacyCanvasSize: number = QrScanner.DEFAULT_CANVAS_SIZE;
     private _preferredCamera: QrScanner.FacingMode | QrScanner.DeviceId = 'environment';
     private readonly _maxScansPerSecond: number = 25;
@@ -66,6 +66,7 @@ class QrScanner {
     private _scanRegion: QrScanner.ScanRegion;
     private _codeOutlineHighlightRemovalTimeout?: number;
     private _qrEnginePromise: Promise<Worker | BarcodeDetector>
+    private _byteMode: boolean = false;
     private _active: boolean = false;
     private _paused: boolean = false;
     private _flashOn: boolean = false;
@@ -82,6 +83,7 @@ class QrScanner {
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
             overlay?: HTMLDivElement,
+            byteMode?: boolean,
         },
     );
     /** @deprecated */
@@ -113,6 +115,7 @@ class QrScanner {
             highlightScanRegion?: boolean,
             highlightCodeOutline?: boolean,
             overlay?: HTMLDivElement,
+            byteMode?: boolean,
         },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
@@ -141,6 +144,7 @@ class QrScanner {
             ? canvasSizeOrCalculateScanRegion
             : this._calculateScanRegion);
         this._preferredCamera = options.preferredCamera || preferredCamera || this._preferredCamera;
+        this._byteMode = options.byteMode || false;
         this._legacyCanvasSize = typeof canvasSizeOrOnDecodeErrorOrOptions === 'number'
             ? canvasSizeOrOnDecodeErrorOrOptions
             : typeof canvasSizeOrCalculateScanRegion === 'number'
@@ -416,6 +420,7 @@ class QrScanner {
             canvas?: HTMLCanvasElement | null,
             disallowCanvasResizing?: boolean,
             alsoTryWithoutScanRegion?: boolean,
+            byteMode?: boolean;
         },
     ): Promise<QrScanner.ScanResult>;
     static async scanImage(
@@ -427,11 +432,13 @@ class QrScanner {
             canvas?: HTMLCanvasElement | null,
             disallowCanvasResizing?: boolean,
             alsoTryWithoutScanRegion?: boolean,
+            byteMode?: boolean;
         } | null,
         qrEngine?: Worker | BarcodeDetector | Promise<Worker | BarcodeDetector> | null,
         canvas?: HTMLCanvasElement | null,
         disallowCanvasResizing: boolean = false,
         alsoTryWithoutScanRegion: boolean = false,
+        byteMode: boolean = false,
     ): Promise<string | QrScanner.ScanResult> {
         let scanRegion: QrScanner.ScanRegion | null | undefined;
         if (scanRegionOrOptions && (
@@ -440,6 +447,7 @@ class QrScanner {
             || 'canvas' in scanRegionOrOptions
             || 'disallowCanvasResizing' in scanRegionOrOptions
             || 'alsoTryWithoutScanRegion' in scanRegionOrOptions
+            || 'byteMode' in scanRegionOrOptions
         )) {
             // we got an options object using the new api
             scanRegion = scanRegionOrOptions.scanRegion;
@@ -447,6 +455,7 @@ class QrScanner {
             canvas = scanRegionOrOptions.canvas;
             disallowCanvasResizing = scanRegionOrOptions.disallowCanvasResizing || false;
             alsoTryWithoutScanRegion = scanRegionOrOptions.alsoTryWithoutScanRegion || false;
+            byteMode = scanRegionOrOptions.byteMode || false;
         } else if (scanRegionOrOptions || qrEngine || canvas || disallowCanvasResizing || alsoTryWithoutScanRegion) {
             console.warn('You\'re using a deprecated api for scanImage which will be removed in the future.');
         }
@@ -483,8 +492,9 @@ class QrScanner {
                         qrEngineWorker.removeEventListener('error', onError);
                         clearTimeout(timeout);
                         if (event.data.data !== null) {
+                            if (scanRegionOrOptions)
                             resolve({
-                                data: event.data.data,
+                                data: byteMode ? event.data.bytes : event.data.data,
                                 cornerPoints: QrScanner._convertPoints(event.data.cornerPoints, scanRegion),
                             });
                         } else {
@@ -520,9 +530,9 @@ class QrScanner {
                             const [scanResult] = await qrEngine.detect(canvas!);
                             if (!scanResult) throw QrScanner.NO_QR_CODE_FOUND;
                             return {
-                                data: scanResult.rawValue,
+                                data: byteMode ? (new TextEncoder()).encode(scanResult.rawValue) : scanResult.rawValue,
                                 cornerPoints: QrScanner._convertPoints(scanResult.cornerPoints, scanRegion),
-                            };
+                            } as QrScanner.ScanResult;
                         } catch (e) {
                             const errorMessage = (e as Error).message || e as string;
                             if (/not implemented|service unavailable/.test(errorMessage)) {
@@ -541,6 +551,7 @@ class QrScanner {
                                     canvas,
                                     disallowCanvasResizing,
                                     alsoTryWithoutScanRegion,
+                                    byteMode,
                                 });
                             }
                             throw `Scanner error: ${errorMessage}`;
@@ -553,7 +564,7 @@ class QrScanner {
             if (!scanRegion || !alsoTryWithoutScanRegion) throw e;
             const detailedScanResult = await QrScanner.scanImage(
                 imageOrFileOrBlobOrUrl,
-                { qrEngine, canvas, disallowCanvasResizing },
+                { qrEngine, canvas, disallowCanvasResizing, byteMode },
             );
             return detailedScanResult;
         } finally {
@@ -787,6 +798,7 @@ class QrScanner {
                     scanRegion: this._scanRegion,
                     qrEngine: this._qrEnginePromise,
                     canvas: this.$canvas,
+                    byteMode: this._byteMode,
                 });
             } catch (error) {
                 if (!this._active) return;
@@ -1054,11 +1066,19 @@ declare namespace QrScanner {
         y: number;
     }
 
-    export interface ScanResult {
+    export type ScanResultString ={
         data: string;
         // In clockwise order, starting at top left, but this might not be guaranteed in the future.
         cornerPoints: QrScanner.Point[];
     }
+
+    export type ScanResultByte = {
+        data: Uint8Array;
+        // In clockwise order, starting at top left, but this might not be guaranteed in the future.
+        cornerPoints: QrScanner.Point[];
+    };
+
+    export type ScanResult = ScanResultString | ScanResultByte;
 }
 
 // simplified from https://wicg.github.io/shape-detection-api/#barcode-detection-api

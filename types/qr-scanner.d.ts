@@ -21,6 +21,7 @@ declare class QrScanner {
     private _scanRegion;
     private _codeOutlineHighlightRemovalTimeout?;
     private _qrEnginePromise;
+    private _byteMode;
     private _active;
     private _paused;
     private _flashOn;
@@ -33,6 +34,7 @@ declare class QrScanner {
         highlightScanRegion?: boolean;
         highlightCodeOutline?: boolean;
         overlay?: HTMLDivElement;
+        byteMode?: boolean;
     });
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
@@ -56,6 +58,7 @@ declare class QrScanner {
         canvas?: HTMLCanvasElement | null;
         disallowCanvasResizing?: boolean;
         alsoTryWithoutScanRegion?: boolean;
+        byteMode?: boolean;
     }): Promise<QrScanner.ScanResult>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
@@ -101,10 +104,15 @@ declare namespace QrScanner {
         x: number;
         y: number;
     }
-    interface ScanResult {
+    type ScanResultString = {
         data: string;
         cornerPoints: QrScanner.Point[];
-    }
+    };
+    type ScanResultByte = {
+        data: Uint8Array;
+        cornerPoints: QrScanner.Point[];
+    };
+    type ScanResult = ScanResultString | ScanResultByte;
 }
 declare class BarcodeDetector {
     constructor(options?: {
