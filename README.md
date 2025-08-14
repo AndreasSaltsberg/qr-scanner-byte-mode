@@ -2,6 +2,25 @@
 
 This is a fork of [Nimiq's QR scanner](https://github.com/nimiq/qr-scanner) that adds byte mode support. All credits to the original author.
 
+## 🚨 Breaking changes
+
+**Starting from version 2**, the library no longer automatically creates a QR scanner worker. You must now manually pass a worker instance to the `QrScanner` constructor using the `qrEngine` option.
+
+### Example
+
+```ts
+import { createWorker } from '@asaltsberg/qr-scanner-byte-mode/qr-scanner-worker.min.js';
+import QrScanner from '@asaltsberg/qr-scanner-byte-mode';
+
+const worker = createWorker();
+
+const scanner = new QrScanner(videoElement, result => {
+    console.log('QR code decoded:', result);
+}, {
+    qrEngine: worker
+});
+```
+
 # QR Scanner
 
 Javascript QR Code Scanner based on [Cosmo Wolfe's javascript port](https://github.com/cozmo/jsqr) of [Google's ZXing library](https://github.com/zxing/zxing).
