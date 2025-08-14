@@ -116,6 +116,7 @@ class QrScanner {
             highlightCodeOutline?: boolean,
             overlay?: HTMLDivElement,
             byteMode?: boolean,
+            qrEngine?: Promise<Worker | BarcodeDetector>,
         },
         canvasSizeOrCalculateScanRegion?: number | ((video: HTMLVideoElement) => QrScanner.ScanRegion),
         preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId,
@@ -145,6 +146,10 @@ class QrScanner {
             : this._calculateScanRegion);
         this._preferredCamera = options.preferredCamera || preferredCamera || this._preferredCamera;
         this._byteMode = options.byteMode || false;
+        if (!options.qrEngine) {
+            throw new Error('You have to pass a qrEngine option to the QrScanner constructor');
+        }
+        this._qrEnginePromise = options.qrEngine;
         this._legacyCanvasSize = typeof canvasSizeOrOnDecodeErrorOrOptions === 'number'
             ? canvasSizeOrOnDecodeErrorOrOptions
             : typeof canvasSizeOrCalculateScanRegion === 'number'
@@ -254,8 +259,6 @@ class QrScanner {
         video.addEventListener('loadedmetadata', this._onLoadedMetaData);
         document.addEventListener('visibilitychange', this._onVisibilityChange);
         window.addEventListener('resize', this._updateOverlay);
-
-        this._qrEnginePromise = QrScanner.createQrEngine();
     }
 
     async hasFlash(): Promise<boolean> {
@@ -460,6 +463,10 @@ class QrScanner {
             console.warn('You\'re using a deprecated api for scanImage which will be removed in the future.');
         }
 
+        if (!qrEngine) {
+            throw new Error('You have to pass a qrEngine option to the QrScanner.scanImage method');
+        }
+
         const gotExternalEngine = !!qrEngine;
 
         try {
@@ -467,7 +474,7 @@ class QrScanner {
                 | SVGImageElement;
             let canvasContext: CanvasRenderingContext2D;
             [qrEngine, image] = await Promise.all([
-                qrEngine || QrScanner.createQrEngine(),
+                qrEngine,
                 QrScanner._loadImage(imageOrFileOrBlobOrUrl),
             ]);
             [canvas, canvasContext] = QrScanner._drawToCanvas(image, scanRegion, canvas, disallowCanvasResizing);
@@ -588,46 +595,6 @@ class QrScanner {
         // Note that for the native BarcodeDecoder or if the worker was destroyed, this is a no-op. However, the native
         // implementations scan normal and inverted qr codes by default
         QrScanner._postWorkerMessage(this._qrEnginePromise, 'inversionMode', inversionMode);
-    }
-
-    static async createQrEngine(): Promise<Worker | BarcodeDetector>;
-    /** @deprecated */
-    static async createQrEngine(workerPath: string): Promise<Worker | BarcodeDetector>;
-    static async createQrEngine(workerPath?: string): Promise<Worker | BarcodeDetector> {
-        if (workerPath) {
-            console.warn('Specifying a worker path is not required and not supported anymore.');
-        }
-
-        // @ts-ignore no types defined for import
-        const createWorker = () => (import('./qr-scanner-worker.min.js') as Promise<{ createWorker: () => Worker }>)
-            .then((module) => module.createWorker());
-
-        const useBarcodeDetector = !QrScanner._disableBarcodeDetector
-            && 'BarcodeDetector' in window
-            && BarcodeDetector.getSupportedFormats
-            && (await BarcodeDetector.getSupportedFormats()).includes('qr_code');
-
-        if (!useBarcodeDetector) return createWorker();
-
-        // On Macs with an M1/M2 processor and macOS Ventura (macOS version 13), the BarcodeDetector is broken in
-        // Chromium based browsers, regardless of the version. For that constellation, the BarcodeDetector does not
-        // error but does not detect QR codes. Macs without an M1/M2 or before Ventura are fine.
-        // See issue #209 and https://bugs.chromium.org/p/chromium/issues/detail?id=1382442
-        // TODO update this once the issue in macOS is fixed
-        const userAgentData = navigator.userAgentData;
-        const isChromiumOnMacWithArmVentura = userAgentData // all Chromium browsers support userAgentData
-            && userAgentData.brands.some(({ brand }) => /Chromium/i.test(brand))
-            && /mac ?OS/i.test(userAgentData.platform)
-            // Does it have an ARM chip (e.g. M1/M2) and Ventura? Check this last as getHighEntropyValues can
-            // theoretically trigger a browser prompt, although no browser currently does seem to show one.
-            // If browser or user refused to return the requested values, assume broken ARM Ventura, to be safe.
-            && await userAgentData.getHighEntropyValues(['architecture', 'platformVersion'])
-                .then(({ architecture, platformVersion }) =>
-                    /arm/i.test(architecture || 'arm') && parseInt(platformVersion || '13') >= /* Ventura */ 13)
-                .catch(() => true);
-        if (isChromiumOnMacWithArmVentura) return createWorker();
-
-        return new BarcodeDetector({ formats: ['qr_code'] });
     }
 
     private _onPlay(): void {
@@ -803,11 +770,6 @@ class QrScanner {
             } catch (error) {
                 if (!this._active) return;
                 this._onDecodeError(error as Error | string);
-            }
-
-            if (QrScanner._disableBarcodeDetector && !(await this._qrEnginePromise instanceof Worker)) {
-                // replace the disabled BarcodeDetector
-                this._qrEnginePromise = QrScanner.createQrEngine();
             }
 
             if (result) {

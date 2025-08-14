@@ -62,9 +62,6 @@ declare class QrScanner {
     }): Promise<QrScanner.ScanResult>;
     setGrayscaleWeights(red: number, green: number, blue: number, useIntegerApproximation?: boolean): void;
     setInversionMode(inversionMode: QrScanner.InversionMode): void;
-    static createQrEngine(): Promise<Worker | BarcodeDetector>;
-    /** @deprecated */
-    static createQrEngine(workerPath: string): Promise<Worker | BarcodeDetector>;
     private _onPlay;
     private _onLoadedMetaData;
     private _onVisibilityChange;
