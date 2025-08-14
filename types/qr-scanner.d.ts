@@ -35,6 +35,7 @@ declare class QrScanner {
         highlightCodeOutline?: boolean;
         overlay?: HTMLDivElement;
         byteMode?: boolean;
+        qrEngine?: Promise<Worker | BarcodeDetector>,
     });
     /** @deprecated */
     constructor(video: HTMLVideoElement, onDecode: (result: string) => void, onDecodeError?: (error: Error | string) => void, calculateScanRegion?: (video: HTMLVideoElement) => QrScanner.ScanRegion, preferredCamera?: QrScanner.FacingMode | QrScanner.DeviceId);
